@@ -8,7 +8,7 @@
 <body>
 
 <h1>TP3 — Procesamiento Digital de Señales</h1>
-<div class="subtitle">ESP32 · Muestreo y visualización en tiempo real</div>
+<div class="subtitle">ESP32 · Muestreo, FFT y visualización en tiempo real</div>
 
 <div class="panel">
   <div class="controls">
@@ -32,6 +32,16 @@
     <div class="readout"><div class="label">Máximo</div><div class="value" id="rMax">—</div></div>
     <div class="readout"><div class="label">Amplitud (Vpp digital)</div><div class="value" id="rVpp">—</div></div>
     <div class="readout"><div class="label">Muestras</div><div class="value" id="rCount">—</div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="label" style="color:var(--text-dim); font-size:11px; margin-bottom:6px;">Análisis espectral (FFT) — bloques de 256 muestras</div>
+  <canvas id="spectrum"></canvas>
+  <div class="harmonics">
+    <div class="harmonic"><div class="label">Armónica 1</div><div class="value" id="h1">—</div></div>
+    <div class="harmonic"><div class="label">Armónica 2</div><div class="value" id="h2">—</div></div>
+    <div class="harmonic"><div class="label">Armónica 3</div><div class="value" id="h3">—</div></div>
   </div>
 </div>
 
