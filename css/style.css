@@ -48,13 +48,13 @@ button:disabled { opacity: 0.35; cursor: not-allowed; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #663; }
 .dot.on { background: var(--trace); box-shadow: 0 0 6px var(--trace); }
 canvas { display: block; width: 100%; height: 320px; background: #060a06; border-radius: 3px; }
-.readouts { display: flex; gap: 28px; margin-top: 14px; font-size: 12px; }
+#spectrum { height: 180px; }
+.readouts { display: flex; gap: 28px; margin-top: 14px; font-size: 12px; flex-wrap: wrap; }
 .readout .label { color: var(--text-dim); }
 .readout .value { color: var(--amber); font-size: 16px; }
-#log {
-  height: 100px; overflow-y: auto; font-size: 11px; color: var(--text-dim);
-  white-space: pre-wrap; line-height: 1.5;
-}
+.harmonics { display: flex; gap: 28px; margin-top: 14px; font-size: 12px; }
+.harmonic .label { color: var(--text-dim); }
+.harmonic .value { color: var(--amber); font-size: 14px; }
 input[type="number"] {
   background: transparent;
   border: 1px solid var(--border);
@@ -66,3 +66,7 @@ input[type="number"] {
   width: 90px;
 }
 label { font-size: 12px; color: var(--text-dim); }
+#log {
+  height: 100px; overflow-y: auto; font-size: 11px; color: var(--text-dim);
+  white-space: pre-wrap; line-height: 1.5;
+}
