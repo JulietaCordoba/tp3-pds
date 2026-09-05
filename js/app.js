@@ -148,6 +148,123 @@ function drawSpectrum(mags, peaks) {
 }
 // ---------- fin FFT ----------
 
+// ---------- Filtros digitales ----------
+let filterType = 'none';
+let fcLow = 20;
+let fcHigh = 100;
+
+let lpState = 0;
+let hpState = { y: 0, xPrev: 0 };
+let bpHpState = { y: 0, xPrev: 0 };
+let bpLpState = 0;
+let filteredBuffer = [];
+
+const filteredCanvas = document.getElementById('filtered');
+const fctx = filteredCanvas.getContext('2d');
+
+function resizeFiltered() {
+  filteredCanvas.width = filteredCanvas.clientWidth * devicePixelRatio;
+  filteredCanvas.height = filteredCanvas.clientHeight * devicePixelRatio;
+}
+window.addEventListener('resize', resizeFiltered);
+resizeFiltered();
+
+function lowpassStep(x, fc, prevY, fs) {
+  const dt = 1 / fs;
+  const RC = 1 / (2 * Math.PI * fc);
+  const alpha = dt / (RC + dt);
+  return prevY + alpha * (x - prevY);
+}
+
+function highpassStep(x, fc, state, fs) {
+  const dt = 1 / fs;
+  const RC = 1 / (2 * Math.PI * fc);
+  const alpha = RC / (RC + dt);
+  const y = alpha * (state.y + x - state.xPrev);
+  state.xPrev = x;
+  state.y = y;
+  return y;
+}
+
+function applyFilterSample(x) {
+  const fs = currentSampleRate;
+  let y = x;
+  if (filterType === 'lowpass') {
+    y = lowpassStep(x, fcLow, lpState, fs);
+    lpState = y;
+  } else if (filterType === 'highpass') {
+    y = highpassStep(x, fcLow, hpState, fs);
+  } else if (filterType === 'bandpass') {
+    const hp = highpassStep(x, fcLow, bpHpState, fs);
+    y = lowpassStep(hp, fcHigh, bpLpState, fs);
+    bpLpState = y;
+  }
+  return y;
+}
+
+function resetFilters() {
+  lpState = 0;
+  hpState = { y: 0, xPrev: 0 };
+  bpHpState = { y: 0, xPrev: 0 };
+  bpLpState = 0;
+  filteredBuffer = [];
+}
+
+function drawFiltered() {
+  const w = filteredCanvas.width, h = filteredCanvas.height;
+  fctx.clearRect(0, 0, w, h);
+  fctx.strokeStyle = '#1a3a1a';
+  fctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) {
+    const x = (w / 10) * i;
+    fctx.beginPath(); fctx.moveTo(x, 0); fctx.lineTo(x, h); fctx.stroke();
+  }
+  const maxPoints = getMaxPoints();
+  if (filteredBuffer.length > 1) {
+    fctx.strokeStyle = '#ffb000';
+    fctx.lineWidth = 1.5 * devicePixelRatio;
+    fctx.beginPath();
+    filteredBuffer.forEach((val, i) => {
+      const x = (i / (maxPoints - 1)) * w;
+      const y = h - ((val + 2048) / 4095) * h;
+      if (i === 0) fctx.moveTo(x, y); else fctx.lineTo(x, y);
+    });
+    fctx.stroke();
+  }
+  requestAnimationFrame(drawFiltered);
+}
+requestAnimationFrame(drawFiltered);
+
+const filterTypeSel = document.getElementById('filterType');
+const fcLowLabel = document.getElementById('fcLowLabel');
+const fcLowInput = document.getElementById('fcLowInput');
+const fcHighLabel = document.getElementById('fcHighLabel');
+const fcHighInput = document.getElementById('fcHighInput');
+
+filterTypeSel.addEventListener('change', () => {
+  const t = filterTypeSel.value;
+  if (t === 'bandpass') {
+    fcLowLabel.textContent = 'F. corte inferior (Hz):';
+    fcHighLabel.style.display = '';
+    fcHighInput.style.display = '';
+  } else {
+    fcLowLabel.textContent = 'Frecuencia de corte (Hz):';
+    fcHighLabel.style.display = 'none';
+    fcHighInput.style.display = 'none';
+  }
+});
+
+document.getElementById('filterBtn').addEventListener('click', () => {
+  filterType = filterTypeSel.value;
+  fcLow = parseFloat(fcLowInput.value) || 20;
+  fcHigh = parseFloat(fcHighInput.value) || 100;
+  resetFilters();
+  log('Filtro aplicado: ' + filterType +
+      (filterType === 'bandpass' ? ` (${fcLow}Hz - ${fcHigh}Hz)` :
+       filterType !== 'none' ? ` (${fcLow}Hz)` : ''));
+});
+// ---------- fin filtros ----------
+
 function log(msg) {
   const line = document.createElement('div');
   line.textContent = msg;
@@ -229,6 +346,10 @@ function handleLine(line) {
     if (buffer.length > maxPoints) buffer.shift();
     updateReadouts(val);
     processFFTSample(val);
+
+    const filteredVal = applyFilterSample(val - 2048);
+    filteredBuffer.push(filteredVal);
+    if (filteredBuffer.length > maxPoints) filteredBuffer.shift();
   } else {
     log(line);
   }
@@ -284,6 +405,9 @@ connectBtn.addEventListener('click', async () => {
   }
 });
 
-startBtn.addEventListener('click', () => sendCommand('S'));
+startBtn.addEventListener('click', () => {
+  resetFilters();
+  sendCommand('S');
+});
 stopBtn.addEventListener('click', () => sendCommand('P'));
 rateBtn.addEventListener('click', () => sendCommand('F' + rateInput.value));

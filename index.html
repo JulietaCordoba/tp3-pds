@@ -8,7 +8,7 @@
 <body>
 
 <h1>TP3 — Procesamiento Digital de Señales</h1>
-<div class="subtitle">ESP32 · Muestreo, FFT y visualización en tiempo real</div>
+<div class="subtitle">ESP32 · Muestreo, FFT, filtrado y visualización en tiempo real</div>
 
 <div class="panel">
   <div class="controls">
@@ -25,6 +25,7 @@
 </div>
 
 <div class="panel">
+  <div class="label" style="color:var(--text-dim); font-size:11px; margin-bottom:6px;">Señal de entrada</div>
   <canvas id="scope"></canvas>
   <div class="readouts">
     <div class="readout"><div class="label">Último valor</div><div class="value" id="rLast">—</div></div>
@@ -43,6 +44,26 @@
     <div class="harmonic"><div class="label">Armónica 2</div><div class="value" id="h2">—</div></div>
     <div class="harmonic"><div class="label">Armónica 3</div><div class="value" id="h3">—</div></div>
   </div>
+</div>
+
+<div class="panel">
+  <div class="label" style="color:var(--text-dim); font-size:11px; margin-bottom:6px;">Filtro digital</div>
+  <div class="controls">
+    <label for="filterType">Tipo:</label>
+    <select id="filterType">
+      <option value="none">Ninguno</option>
+      <option value="lowpass">Pasabajos</option>
+      <option value="highpass">Pasaaltos</option>
+      <option value="bandpass">Pasabanda</option>
+    </select>
+    <label for="fcLowInput" id="fcLowLabel">Frecuencia de corte (Hz):</label>
+    <input type="number" id="fcLowInput" value="20" min="0.1" step="0.1">
+    <label for="fcHighInput" id="fcHighLabel" style="display:none;">F. corte superior (Hz):</label>
+    <input type="number" id="fcHighInput" value="100" min="0.1" step="0.1" style="display:none;">
+    <button id="filterBtn">Aplicar filtro</button>
+  </div>
+  <div class="label" style="color:var(--text-dim); font-size:11px; margin:12px 0 6px;">Señal filtrada</div>
+  <canvas id="filtered"></canvas>
 </div>
 
 <div class="panel">
