@@ -15,6 +15,13 @@ const rMax = document.getElementById('rMax');
 const rVpp = document.getElementById('rVpp');
 const rCount = document.getElementById('rCount');
 
+// ---------- Conversión cuentas ADC -> Volts ----------
+const ADC_VREF = 3.3;
+const ADC_MAX = 4095;
+function countsToVolts(counts) {
+  return (counts / ADC_MAX) * ADC_VREF;
+}
+
 const TIME_WINDOW_S = 0.15;
 let currentSampleRate = 1000;
 function getMaxPoints() {
@@ -210,15 +217,32 @@ function resetFilters() {
   filteredBuffer = [];
 }
 
+// ---------- Grilla con etiquetas de tensión (reutilizable para ambos gráficos) ----------
+function drawGridWithVolts(context, w, h, minV, maxV) {
+  context.strokeStyle = '#1a3a1a';
+  context.lineWidth = 1;
+  const cols = 10, rows = 8;
+  for (let i = 0; i <= cols; i++) {
+    const x = (w / cols) * i;
+    context.beginPath(); context.moveTo(x, 0); context.lineTo(x, h); context.stroke();
+  }
+  context.font = (10 * devicePixelRatio) + 'px monospace';
+  context.fillStyle = '#6a8f6a';
+  context.textBaseline = 'middle';
+  for (let i = 0; i <= rows; i++) {
+    const y = (h / rows) * i;
+    context.beginPath(); context.moveTo(0, y); context.lineTo(w, y); context.stroke();
+    const v = maxV - (i / rows) * (maxV - minV);
+    context.fillText(v.toFixed(2) + 'V', 4 * devicePixelRatio, y + 8 * devicePixelRatio);
+  }
+}
+
 function drawFiltered() {
   const w = filteredCanvas.width, h = filteredCanvas.height;
   fctx.clearRect(0, 0, w, h);
-  fctx.strokeStyle = '#1a3a1a';
-  fctx.lineWidth = 1;
-  for (let i = 0; i <= 10; i++) {
-    const x = (w / 10) * i;
-    fctx.beginPath(); fctx.moveTo(x, 0); fctx.lineTo(x, h); fctx.stroke();
-  }
+  const halfRangeV = countsToVolts(2048);
+  drawGridWithVolts(fctx, w, h, -halfRangeV, halfRangeV);
+
   const maxPoints = getMaxPoints();
   if (filteredBuffer.length > 1) {
     fctx.strokeStyle = '#ffb000';
@@ -280,24 +304,10 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-function drawGrid(w, h) {
-  ctx.strokeStyle = '#1a3a1a';
-  ctx.lineWidth = 1;
-  const cols = 10, rows = 8;
-  for (let i = 0; i <= cols; i++) {
-    const x = (w / cols) * i;
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-  }
-  for (let i = 0; i <= rows; i++) {
-    const y = (h / rows) * i;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-  }
-}
-
 function draw() {
   const w = canvas.width, h = canvas.height;
   ctx.clearRect(0, 0, w, h);
-  drawGrid(w, h);
+  drawGridWithVolts(ctx, w, h, 0, ADC_VREF);
 
   const maxPoints = getMaxPoints();
   if (buffer.length > 1) {
@@ -317,14 +327,14 @@ requestAnimationFrame(draw);
 
 function updateReadouts(val) {
   totalCount++;
-  rLast.textContent = val;
+  rLast.textContent = countsToVolts(val).toFixed(2) + ' V';
   rCount.textContent = totalCount;
   if (buffer.length > 0) {
     const min = Math.min(...buffer);
     const max = Math.max(...buffer);
-    rMin.textContent = min;
-    rMax.textContent = max;
-    rVpp.textContent = (max - min);
+    rMin.textContent = countsToVolts(min).toFixed(2) + ' V';
+    rMax.textContent = countsToVolts(max).toFixed(2) + ' V';
+    rVpp.textContent = countsToVolts(max - min).toFixed(2) + ' V';
   }
 }
 
@@ -407,6 +417,7 @@ connectBtn.addEventListener('click', async () => {
 
 startBtn.addEventListener('click', () => {
   resetFilters();
+  buffer = [];
   sendCommand('S');
 });
 stopBtn.addEventListener('click', () => sendCommand('P'));
