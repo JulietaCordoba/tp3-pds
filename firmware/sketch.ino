@@ -1,24 +1,19 @@
 #include <driver/dac.h>
 
 #define ADC_PIN 34
-#define DAC_CHANNEL DAC_CHANNEL_1   // GPIO25
+#define DAC_CHANNEL DAC_CHANNEL_1
 
 hw_timer_t *timer = NULL;
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 volatile bool sampling = false;
-volatile bool sampleFlag = false;
-volatile uint16_t lastSample = 0;
+volatile bool sampleRequest = false;   // la ISR solo prende esta bandera
 
-int sampleRateHz = 1000;
+int sampleRateHz = 800;
 
 void IRAM_ATTR onTimer() {
-  portENTER_CRITICAL_ISR(&timerMux);
   if (sampling) {
-    lastSample = analogRead(ADC_PIN);
-    sampleFlag = true;
+    sampleRequest = true;   // nada más acá, ni analogRead ni Serial
   }
-  portEXIT_CRITICAL_ISR(&timerMux);
 }
 
 void setSampleRate(int hz) {
@@ -53,11 +48,10 @@ void loop() {
     }
   }
 
-  if (sampleFlag) {
-    portENTER_CRITICAL(&timerMux);
-    uint16_t sample = lastSample;
-    sampleFlag = false;
-    portEXIT_CRITICAL(&timerMux);
+  if (sampleRequest) {
+    sampleRequest = false;
+
+    uint16_t sample = analogRead(ADC_PIN);   // la lectura real, ahora en el loop()
 
     uint8_t dacValue = sample >> 4;
     dac_output_voltage(DAC_CHANNEL, dacValue);
