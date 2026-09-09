@@ -278,11 +278,20 @@ filterTypeSel.addEventListener('change', () => {
   }
 });
 
-document.getElementById('filterBtn').addEventListener('click', () => {
+document.getElementById('filterBtn').addEventListener('click', async () => {
   filterType = filterTypeSel.value;
   fcLow = parseFloat(fcLowInput.value) || 20;
   fcHigh = parseFloat(fcHighInput.value) || 100;
   resetFilters();
+
+  // Traducción al protocolo que espera el firmware (T/C/D)
+  const typeMap = { none: 0, lowpass: 1, highpass: 2, bandpass: 3 };
+  await sendCommand('T' + typeMap[filterType]);
+  await sendCommand('C' + fcLow);
+  if (filterType === 'bandpass') {
+    await sendCommand('D' + fcHigh);
+  }
+
   log('Filtro aplicado: ' + filterType +
       (filterType === 'bandpass' ? ` (${fcLow}Hz - ${fcHigh}Hz)` :
        filterType !== 'none' ? ` (${fcLow}Hz)` : ''));
